@@ -8,8 +8,9 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import AuthRouter from "./router/auth.router"
-const app = express()
+import StorageRouter from "./router/storage.router"
 
+const app = express()
 app.listen(
     process.env.PORT || 8080,
     () => console.log(`Server is running on ${process.env.PORT}`)
@@ -24,3 +25,4 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
 app.use("/auth", AuthRouter)
+app.use("/storage", StorageRouter)

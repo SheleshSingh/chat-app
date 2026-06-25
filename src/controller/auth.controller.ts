@@ -84,12 +84,12 @@ export const login = async (req: Request, res: Response) => {
     }
 }
 
-export const getSession = (req: Request, res: Response) => {
+export const getSession = async (req: Request, res: Response) => {
     try{
         const tokenAccess= req.cookies.accessToken
         if(!tokenAccess)
             throw TryError("Invalid session", 401)
-        const session =jwt.verify(tokenAccess, process.env.AUTH_SECRET!)
+        const session = await jwt.verify(tokenAccess, process.env.AUTH_SECRET!)
         res.json(session)
     }catch(err){
         CatchError(err,res, "Invalid session")
