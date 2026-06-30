@@ -1,4 +1,4 @@
-import { GetObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Request, Response } from "express";
 import { CatchError, TryError } from "../lib/error";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -11,9 +11,24 @@ const conn = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
     }
 })
+
+const isFileExist = async (path: string) => {
+    try {
+        const command = new HeadObjectCommand({
+            Bucket: process.env.S3_BUCKET,
+            Key: path
+        })
+        await conn.send(command)
+        return true
+    }
+    catch (err) {
+        return false
+    }
+}
+
 export const downloadFile = async (req: Request, res: Response) => {
     try {
-        const { path } = req.body
+        const path = req.body?.path
         if (!path)
             throw TryError("Failed to generate download url because path is missing", 400)
 
@@ -22,8 +37,9 @@ export const downloadFile = async (req: Request, res: Response) => {
             Key: path
         }
 
-        const checkFileExistCommand = new HeadObjectCommand(option)
-        await conn.send(checkFileExistCommand)
+        const isExist = await isFileExist(path)
+        if (!isExist)
+            throw TryError("File does`t exists", 404)
 
         const command = new GetObjectCommand(option)
 
@@ -32,6 +48,28 @@ export const downloadFile = async (req: Request, res: Response) => {
 
     }
     catch (err) {
-        CatchError(err, res)
+        CatchError(err, res, "File to generate download url")
+    }
+}
+
+export const uploadFile = async (req: Request, res: Response) => {
+    try {
+        const path = req.body?.path
+        const type = req.body?.type
+
+        if (!path || !type)
+            throw TryError("Invalid resquest path or type is required", 400)
+
+        const command = new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET,
+            Key: path,
+            ContentType: type
+        });
+
+        const url = await getSignedUrl(conn, command, { expiresIn: 60 })
+        res.json({url})
+    }
+    catch (err) {
+        CatchError(err, res, "File to generate upload url")
     }
 }

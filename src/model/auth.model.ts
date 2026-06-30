@@ -2,6 +2,10 @@ import { Schema, model } from "mongoose"
 import bcrypt from "bcrypt"
 
 const authSchema = new Schema({
+    image: {
+        type: String,
+        default: null
+    },
     fullname: {
         type: String,
         required: true,
@@ -29,7 +33,7 @@ const authSchema = new Schema({
 
 authSchema.pre("save", async function () {
     const count = await model("Auth").countDocuments({ email: this.email })
-    if(count >0)
+    if (count > 0)
         throw new Error("User already exits")
 });
 
