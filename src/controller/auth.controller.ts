@@ -2,17 +2,11 @@ import AuthModel from "../model/auth.model";
 import { Request, Response } from "express"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
-import mongoose from "mongoose";
 import { CatchError, TryError } from "../lib/error";
+import { PayloadInterface, SessionInterface } from "../middleware/Auth.middleware";
+import { downloadObject } from "../lib/s3";
 
 const accessTokenExpiry = "10m"
-
-interface PayloadInterface {
-    id: mongoose.Types.ObjectId;
-    fullname: string;
-    email: string;
-    mobile: string;
-}
 
 const generateToken = (payload: PayloadInterface) => {
     const accessToken = jwt.sign(payload, process.env.AUTH_SECRET!, { expiresIn: accessTokenExpiry });
@@ -85,13 +79,28 @@ export const login = async (req: Request, res: Response) => {
 }
 
 export const getSession = async (req: Request, res: Response) => {
-    try{
-        const tokenAccess= req.cookies.accessToken
-        if(!tokenAccess)
+    try {
+        const tokenAccess = req.cookies.accessToken
+        if (!tokenAccess)
             throw TryError("Invalid session", 401)
         const session = await jwt.verify(tokenAccess, process.env.AUTH_SECRET!)
         res.json(session)
-    }catch(err){
-        CatchError(err,res, "Invalid session")
+    } catch (err) {
+        CatchError(err, res, "Invalid session")
     }
- }
+}
+
+export const updateProfilePicture = async (req: SessionInterface, res: Response) => {
+    try {
+        const path = req.body?.path
+        if (!path || !req.session)
+            throw TryError("Failed to update profile picture", 400)
+        await AuthModel.updateOne({ _id: req.session.id }, { $set: { image: path } })
+
+        const url = await downloadObject(path)
+        res.json({ image: url })
+    }
+    catch (err) {
+        CatchError(err, res, "Failed to update profile picture")
+    }
+}
