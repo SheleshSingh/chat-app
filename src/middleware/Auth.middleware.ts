@@ -9,26 +9,28 @@ export interface PayloadInterface {
     fullname: string;
     email: string;
     mobile: string;
+    image: string | null
 }
 
 export interface SessionInterface extends Request {
     session?: PayloadInterface
 }
 
-const AuthMiddleware = (req: SessionInterface, res: Response, next: NextFunction) => {
+const AuthMiddleware = async (req: SessionInterface, res: Response, next: NextFunction) => {
     try {
 
         const accessToken = req.cookies.accessToken
         if (!accessToken)
             throw TryError("Unauthorized", 401)
 
-        const payload = jwt.verify(accessToken, process.env.AUTH_SECRET!) as JwtPayload
+        const payload = await jwt.verify(accessToken, process.env.AUTH_SECRET!) as JwtPayload
 
         req.session = {
             id: payload.id,
             email: payload.email,
             mobile: payload.mobile,
-            fullname: payload.fullname
+            fullname: payload.fullname,
+            image: payload.image
         }
         next()
     }

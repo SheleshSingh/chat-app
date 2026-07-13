@@ -5,12 +5,31 @@ import jwt from "jsonwebtoken"
 import { CatchError, TryError } from "../lib/error";
 import { PayloadInterface, SessionInterface } from "../middleware/Auth.middleware";
 import { downloadObject } from "../lib/s3";
+import { v4 as uuid } from "uuid"
 
 const accessTokenExpiry = "10m"
+const tenMinutInMs = (10 * 60) * 1000
+const sevenDaysInMs = (7 * 24 * 60 * 60) * 1000
+
+type TokenType = "at" | "rt"
 
 const generateToken = (payload: PayloadInterface) => {
     const accessToken = jwt.sign(payload, process.env.AUTH_SECRET!, { expiresIn: accessTokenExpiry });
-    return accessToken
+    const refreshToken = uuid()
+    return {
+        accessToken,
+        refreshToken
+    }
+}
+
+const getOptions = (tokenType: TokenType) => {
+    return {
+        httpOnly: true,
+        // maxAge: tokenType === "at" ? (10 * 60) * 1000 : (7 * 24 * 60 * 60) * 1000,
+        maxAge: tokenType === "at" ? tenMinutInMs : sevenDaysInMs,
+        secure: false,
+        domain: "localhost"
+    }
 }
 
 export const signup = async (req: Request, res: Response) => {
@@ -35,46 +54,34 @@ export const login = async (req: Request, res: Response) => {
         if (!user)
             throw TryError("User not found, please try to signup first", 404)
 
-
-        // if (!user) {
-        //     const err: ErrorMessage = new Error("User not found, please try to signup first")
-        //     err.status = 404
-        //     throw err
-        // }
-
         const isLogin = await bcrypt.compare(password, user.password)
 
         if (!isLogin)
             throw TryError("Invalid credetials email or password incorrect", 401)
-
-        // if (!isLogin) {
-        //     const err: ErrorMessage = new Error("Invalid credetials email or password incorrect")
-        //     err.status = 401
-        //     throw err
-        // }
 
         const payload = {
             id: user._id,
             fullname: user.fullname,
             email: user.email,
             mobile: user.mobile,
+            image: user.image ? await downloadObject(user.image) : null
         };
 
-        const options = {
-            httpOnly: true,
-            maxAge: (10 * 60) * 1000,
-            secure: false,
-            domain: "localhost"
-        }
-
-        const accessToken = generateToken(payload);
-        res.cookie("accessToken", accessToken, options)
+        const { accessToken, refreshToken } = generateToken(payload);
+        res.cookie("accessToken", accessToken, getOptions("at"))
+        res.cookie("refreshToken", refreshToken, getOptions("rt"))
         res.json({ message: "Login success" })
-    } catch (err: unknown) {
-        // if (err instanceof Error)
-        //     res.status(401).json({ message: err.message })
 
+    } catch (err: unknown) {
         CatchError(err, res)
+    }
+}
+
+export const refreshToken = (req: Request, res: Response) => {
+    try {
+        res.send("success")
+    } catch (err) {
+        CatchError(err, res, "Failed to refresh token")
     }
 }
 
