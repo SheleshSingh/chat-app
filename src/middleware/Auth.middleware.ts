@@ -5,7 +5,7 @@ import { CatchError, TryError } from "../lib/error";
 import jwt, { JwtPayload } from "jsonwebtoken"
 
 export interface PayloadInterface {
-    id: mongoose.Types.ObjectId;
+    id: mongoose.Types.ObjectId | string;
     fullname: string;
     email: string;
     mobile: string;

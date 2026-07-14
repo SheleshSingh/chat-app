@@ -6,6 +6,7 @@ import { CatchError, TryError } from "../lib/error";
 import { PayloadInterface, SessionInterface } from "../middleware/Auth.middleware";
 import { downloadObject } from "../lib/s3";
 import { v4 as uuid } from "uuid"
+import moment from "moment";
 
 const accessTokenExpiry = "10m"
 const tenMinutInMs = (10 * 60) * 1000
@@ -38,9 +39,6 @@ export const signup = async (req: Request, res: Response) => {
         res.json({ message: "Signup successfully !" })
     }
     catch (err: unknown) {
-        // if (err instanceof Error)
-        //     res.status(500).json({ message: err.message })
-
         CatchError(err, res)
     }
 
@@ -68,6 +66,14 @@ export const login = async (req: Request, res: Response) => {
         };
 
         const { accessToken, refreshToken } = generateToken(payload);
+
+        await AuthModel.updateOne({ _id: user._id }, {
+            $set: {
+                refreshToken,
+                expiry: moment().add(7, "days").toDate()
+            }
+        })
+
         res.cookie("accessToken", accessToken, getOptions("at"))
         res.cookie("refreshToken", refreshToken, getOptions("rt"))
         res.json({ message: "Login success" })
@@ -77,9 +83,21 @@ export const login = async (req: Request, res: Response) => {
     }
 }
 
-export const refreshToken = (req: Request, res: Response) => {
+export const refreshToken = async (req: SessionInterface, res: Response) => {
     try {
-        res.send("success")
+        if (!req.session)
+            throw TryError("Failed to refresh token", 401)
+        const { accessToken, refreshToken } = generateToken(req.session)
+        await AuthModel.updateOne({ _id: req.session.id }, {
+            $set: {
+                refreshToken,
+                expiry: moment().add(7, "days").toDate()
+            }
+        })
+
+        res.cookie("accessToken", accessToken, getOptions("at"))
+        res.cookie("refreshToken", refreshToken, getOptions("rt"))
+        res.json({ message: "Token refreshed" })
     } catch (err) {
         CatchError(err, res, "Failed to refresh token")
     }
