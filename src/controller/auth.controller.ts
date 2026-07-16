@@ -87,6 +87,9 @@ export const refreshToken = async (req: SessionInterface, res: Response) => {
     try {
         if (!req.session)
             throw TryError("Failed to refresh token", 401)
+
+        req.session.image = (req.session.image ? await downloadObject(req.session.image) : null)
+
         const { accessToken, refreshToken } = generateToken(req.session)
         await AuthModel.updateOne({ _id: req.session.id }, {
             $set: {
@@ -127,5 +130,22 @@ export const updateProfilePicture = async (req: SessionInterface, res: Response)
     }
     catch (err) {
         CatchError(err, res, "Failed to update profile picture")
+    }
+}
+
+export const logout = (req: Request, res: Response) => {
+    try {
+        const options = {
+            httpOnly: true,
+            maxAge: 0,
+            secure: false,
+            domain: "localhost"
+        }
+        res.clearCookie("accessToken", options)
+        res.clearCookie("refreshToken", options)
+        res.json({ message: "Logout success" })
+    }
+    catch (err) {
+        CatchError(err, res, "")
     }
 }
