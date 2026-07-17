@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import { CatchError } from "../lib/error"
 import FriendModel from "../middleware/friend.model"
 import { SessionInterface } from "../middleware/Auth.middleware";
+import AuthModel from "../model/auth.model";
 
 export const addFriend = async (req: SessionInterface, res: Response) => {
     try {
@@ -22,5 +23,28 @@ export const fetchFriends = async (req: SessionInterface, res: Response) => {
     }
     catch (err) {
         CatchError(err, res, "Failed to friends")
+    }
+}
+
+export const suggestedFriends = async (req: Request, res: Response) => {
+    try {
+        const friends = await AuthModel.aggregate([
+            {
+                $sample: {
+                    size: 5
+                }
+            },
+            {
+                $project: {
+                    fullname: 1,
+                    image: 1
+                }
+            }
+        ])
+
+        res.json(friends)
+    }
+    catch (err) {
+        CatchError(err, res, "Failed to suggestions friends")
     }
 }
