@@ -9,7 +9,7 @@ export interface PayloadInterface {
     fullname: string;
     email: string;
     mobile: string;
-    image: string | null
+    image: string | null | undefined
 }
 
 export interface SessionInterface extends Request {
