@@ -9,7 +9,7 @@ export const addFriend = async (req: SessionInterface, res: Response) => {
     try {
         req.body.user = req.session?.id
         const friend = await FriendModel.create(req.body)
-        res.json(friend)
+        res.json({ message: "Friend request sent" })
     }
     catch (err) {
         CatchError(err, res, "Failed to send friend request")

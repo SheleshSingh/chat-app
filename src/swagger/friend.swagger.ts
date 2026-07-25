@@ -1,23 +1,23 @@
-const AuthApiDoc = {
-    "/auth/signup": {
+const FriendApiDoc = {
+    "/friend": {
         post: {
-            summary: "Register a new user",
+            summary: "Sent a friend request",
+            description: "Access token required",
             requestBody: {
                 required: true,
                 content: {
                     "application/json": {
                         schema: {
                             type: "object",
+                            required: ["path"],
                             properties: {
-                                fullname: { type: "string" },
-                                email: { type: "string" },
-                                password: { type: "string" },
-                                mobile: { type: "string" }
+                                friend: { type: "string", example: "your_friend_id" }
                             }
                         }
                     }
                 }
             },
+
             responses: {
                 200: {
                     description: "Success",
@@ -26,13 +26,30 @@ const AuthApiDoc = {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    message: { type: "string", example: "Signup success" }
-
+                                    message: {
+                                        type: "string",
+                                        example: "Friend request sent"
+                                    }
                                 }
                             }
                         }
                     }
                 },
+
+                401: {
+                    description: "Error",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    message: { type: "string", example: "Invalid token" }
+                                }
+                            }
+                        }
+                    }
+                },
+
                 500: {
                     description: "Error",
                     content: {
@@ -45,28 +62,96 @@ const AuthApiDoc = {
                             }
                         }
                     }
-                },
+                }
             }
-        }
+        },
+        get: {
+            summary: "Fetch your friends",
+            description: "Access token required",
+            responses: {
+                200: {
+                    description: "Success",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        friend: {
+                                            type: "object",
+                                            properties: {
+                                                fullname: { type: "string" },
+                                                email: { type: "string" },
+                                                mobile: { type: "string" },
+                                                image: { type: "string" },
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
 
+                401: {
+                    description: "Error",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    message: { type: "string", example: "Invalid token" }
+                                }
+                            }
+                        }
+                    }
+                },
+
+                500: {
+                    description: "Error",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    message: { type: "string" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
     },
-    "/auth/login": {
-        post: {
-            summary: "Sign in a user",
+    "/friend/{id}": {
+        put: {
+            summary: "Accepted friend request",
+            description: "Access token required",
+            parameters: [
+                {
+                    in: "path",
+                    name: "id",
+                    required: true,
+                    default: 0,
+                    schema: { type: "string" }
+                }
+            ],
             requestBody: {
                 required: true,
                 content: {
                     "application/json": {
                         schema: {
                             type: "object",
+                            required: ["path"],
                             properties: {
-                                email: { type: "string" },
-                                password: { type: "string" },
+                                status: { type: "string", example: "accepted" }
                             }
                         }
                     }
                 }
             },
+
             responses: {
                 200: {
                     description: "Success",
@@ -75,27 +160,16 @@ const AuthApiDoc = {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    message: { type: "string", example: "Login success" },
-                                    accessToken: { type: "string", example: "Valid for 10 minut http only mode" },
-                                    refreshToken: { type: "string", example: "Valid for 7 days http only mode" }
+                                    message: {
+                                        type: "string",
+                                        example: "Friend status updated"
+                                    }
                                 }
                             }
                         }
                     }
                 },
-                404: {
-                    description: "Error",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    message: { type: "string", example: "User not found, please try to signup first" }
-                                }
-                            }
-                        }
-                    }
-                },
+
                 401: {
                     description: "Error",
                     content: {
@@ -103,12 +177,13 @@ const AuthApiDoc = {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    message: { type: "string", example: "Invalid credetials email or password incorrect" }
+                                    message: { type: "string", example: "Invalid token" }
                                 }
                             }
                         }
                     }
                 },
+
                 500: {
                     description: "Error",
                     content: {
@@ -121,14 +196,22 @@ const AuthApiDoc = {
                             }
                         }
                     }
-                },
+                }
             }
-        }
+        },
+        delete: {
+            summary: "Unfriend or rejected friend request",
+            description: "Access token required",
+            parameters: [
+                {
+                    in: "path",
+                    name: "id",
+                    required: true,
+                    default: 0,
+                    schema: { type: "string" }
+                }
+            ],
 
-    },
-    "/auth/logout": {
-        post: {
-            summary: "Logout a user",
             responses: {
                 200: {
                     description: "Success",
@@ -137,14 +220,30 @@ const AuthApiDoc = {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    message: { type: "string", example: "Logout success" },
-                                    accessToken: { type: "string", example: "Auto remoned from cookie" },
-                                    refreshToken: { type: "string", example: "Auto remoned from cookie" }
+                                    message: {
+                                        type: "string",
+                                        example: "Friend deleted"
+                                    }
                                 }
                             }
                         }
                     }
                 },
+
+                401: {
+                    description: "Error",
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    message: { type: "string", example: "Invalid token" }
+                                }
+                            }
+                        }
+                    }
+                },
+
                 500: {
                     description: "Error",
                     content: {
@@ -157,42 +256,35 @@ const AuthApiDoc = {
                             }
                         }
                     }
-                },
+                }
             }
-        }
-
+        },
     },
-    "/auth/refresh-token": {
+    "/friend/suggestion": {
         get: {
-            summary: "Getting new access and refresh token",
-            requestBody: {
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                refreshToken: { type: "string", example: "Sent automatically from http only cookie" }
-                            }
-                        }
-                    }
-                }
-            },
+            summary: "Get friends suggestion",
+            description: "Access token required",
             responses: {
                 200: {
                     description: "Success",
                     content: {
                         "application/json": {
                             schema: {
-                                type: "object",
-                                properties: {
-                                    message: { type: "string", example: "Token refresh" },
-                                    accessToken: { type: "string", example: "Valid for 10 minut http only mode" },
-                                    refreshToken: { type: "string", example: "Valid for 7 days http only mode" }
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        fullname: { type: "string" },
+                                        email: { type: "string" },
+                                        mobile: { type: "string" },
+                                        image: { type: "string" },
+                                    }
                                 }
                             }
                         }
                     }
                 },
+
                 401: {
                     description: "Error",
                     content: {
@@ -200,12 +292,13 @@ const AuthApiDoc = {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    message: { type: "string", example: "Failed to refresh token" }
+                                    message: { type: "string", example: "Invalid token" }
                                 }
                             }
                         }
                     }
                 },
+
                 500: {
                     description: "Error",
                     content: {
@@ -218,44 +311,35 @@ const AuthApiDoc = {
                             }
                         }
                     }
-                },
+                }
             }
-        }
-
+        },
     },
-    "/auth/session": {
+    "/friend/request": {
         get: {
-            summary: "Getting user info from token",
-            requestBody: {
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                accessToken: { type: "string", example: "Sent automatically from http only cookie" }
-                            }
-                        }
-                    }
-                }
-            },
+            summary: "Fetch friend request received",
+            description: "Access token required",
             responses: {
                 200: {
                     description: "Success",
                     content: {
                         "application/json": {
                             schema: {
-                                type: "object",
-                                properties: {
-                                    _id: { type: "string" },
-                                    email: { type: "string" },
-                                    fullname: { type: "string" },
-                                    mobile: { type: "string" },
-                                    image: { type: "string" },
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        fullname: { type: "string" },
+                                        email: { type: "string" },
+                                        mobile: { type: "string" },
+                                        image: { type: "string" },
+                                    }
                                 }
                             }
                         }
                     }
                 },
+
                 401: {
                     description: "Error",
                     content: {
@@ -263,12 +347,13 @@ const AuthApiDoc = {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    message: { type: "string", example: "Invalid session" }
+                                    message: { type: "string", example: "Invalid token" }
                                 }
                             }
                         }
                     }
                 },
+
                 500: {
                     description: "Error",
                     content: {
@@ -281,72 +366,10 @@ const AuthApiDoc = {
                             }
                         }
                     }
-                },
-            }
-        }
-
-    },
-    "/auth/profile-picture": {
-        get: {
-            summary: "Update image url",
-            requestBody: {
-                required: true,
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                accessToken: { type: "string", example: "Sent automatically from http only cookie" },
-                                image: { type: "string", example: "your_image_public_url" }
-                            }
-                        }
-                    }
                 }
-            },
-            responses: {
-                200: {
-                    description: "Success",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    image: { type: "string", example: "image_url" }
-                                }
-                            }
-                        }
-                    }
-                },
-                401: {
-                    description: "Error",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    message: { type: "string", example: "Invalid session" }
-                                }
-                            }
-                        }
-                    }
-                },
-                500: {
-                    description: "Error",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    message: { type: "string" }
-                                }
-                            }
-                        }
-                    }
-                },
             }
-        }
-
-    },
+        },
+    }
 }
 
-export default AuthApiDoc
+export default FriendApiDoc
